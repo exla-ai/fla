@@ -190,7 +190,10 @@ class Pi05Model(BaseModel):
             config: Model configuration.
             rngs: Random number generators for initialization.
         """
-        super().__init__(config.action_dim, config.action_horizon, config.max_token_len)
+        # Set attributes directly (nnx.Module doesn't use __init__ args)
+        self.action_dim = config.action_dim
+        self.action_horizon = config.action_horizon
+        self.max_token_len = config.max_token_len
         self.config = config
         self.freeze_vision_backbone = config.freeze_vision_backbone
 

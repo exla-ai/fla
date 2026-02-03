@@ -1,6 +1,6 @@
-# FLA - Fine-tune Vision-Language-Action Models
+# FLA (Finetune VLA)
 
-A minimal, research-focused library for fine-tuning VLA models on robotics data.
+A minimal, research-focused library for fine-tuning Vision-Language-Action models on robotics data.
 
 ## Features
 
@@ -15,17 +15,63 @@ A minimal, research-focused library for fine-tuning VLA models on robotics data.
 
 ## Installation
 
+### Install from GitHub (Recommended)
+
+Using [uv](https://docs.astral.sh/uv/) (fast Python package installer):
+
 ```bash
-# From source
-cd fla
-pip install -e .
+# Minimal install (core training modules)
+uv pip install git+https://github.com/Physical-Intelligence/openpi.git#subdirectory=fla
 
-# With evaluation dependencies
-pip install -e ".[eval]"
+# With CUDA support (for GPU training)
+uv pip install "fla[cuda] @ git+https://github.com/Physical-Intelligence/openpi.git#subdirectory=fla"
 
-# With dev dependencies
-pip install -e ".[dev]"
+# With data loading support (LeRobot datasets)
+uv pip install "fla[data] @ git+https://github.com/Physical-Intelligence/openpi.git#subdirectory=fla"
+
+# With training dependencies
+uv pip install "fla[train] @ git+https://github.com/Physical-Intelligence/openpi.git#subdirectory=fla"
+
+# Full installation (all dependencies)
+uv pip install "fla[all] @ git+https://github.com/Physical-Intelligence/openpi.git#subdirectory=fla"
+
+# For evaluation environments
+uv pip install "fla[eval] @ git+https://github.com/Physical-Intelligence/openpi.git#subdirectory=fla"
 ```
+
+Or with standard pip:
+
+```bash
+pip install git+https://github.com/Physical-Intelligence/openpi.git#subdirectory=fla
+```
+
+### Install from Source (Development)
+
+```bash
+git clone https://github.com/Physical-Intelligence/openpi.git
+cd openpi/fla
+
+# Using uv (recommended)
+uv pip install -e .
+uv pip install -e ".[all]"
+uv pip install -e ".[dev]"
+
+# Or using pip
+pip install -e .
+```
+
+### Dependency Groups
+
+| Group | Dependencies | Use Case |
+|-------|-------------|----------|
+| (base) | jax, flax, optax, numpy, einops, tqdm | Core training modules |
+| `cuda` | jax[cuda12] | GPU acceleration |
+| `train` | orbax, safetensors, sentencepiece, tyro | Full training pipeline |
+| `data` | lerobot, torch, datasets | Loading LeRobot datasets |
+| `augment` | augmax, pillow | Image augmentation |
+| `eval` | gymnasium, gym-aloha, mujoco | Simulation evaluation |
+| `dev` | pytest, ruff, mypy | Development tools |
+| `all` | All of the above | Everything |
 
 ## Quick Start
 

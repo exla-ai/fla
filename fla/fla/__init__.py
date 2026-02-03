@@ -1,4 +1,4 @@
-"""FLA - Fine-tune Vision-Language-Action Models.
+"""FLA (Finetune VLA) - Fine-tune Vision-Language-Action Models.
 
 A minimal, research-focused library for fine-tuning VLA models on robotics data.
 
