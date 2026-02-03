@@ -150,19 +150,21 @@ class TestValueFunction:
         rngs = nnx.Rngs(0)
         value_fn = ValueFunction(feature_dim=64, hidden_dim=128, rngs=rngs)
 
-        def loss_fn(vf):
-            graphdef, state = nnx.split(vf)
-            model = nnx.merge(graphdef, state)
+        # Split module into graphdef and state for gradient computation
+        graphdef, state = nnx.split(value_fn)
+
+        def loss_fn(params):
+            model = nnx.merge(graphdef, params)
             features = jax.random.normal(jax.random.key(0), (2, 64))
             return jnp.mean(model(features))
 
-        grad = jax.grad(loss_fn)(value_fn)
-        graphdef, grad_state = nnx.split(grad)
+        # Compute gradient w.r.t. state (pytree of parameters)
+        grad = jax.grad(loss_fn)(state)
 
         # Should have non-zero gradients
-        grad_leaves = jax.tree_util.tree_leaves(grad_state)
+        grad_leaves = jax.tree_util.tree_leaves(grad)
         has_nonzero = any(
-            jnp.any(leaf.value != 0) if hasattr(leaf, 'value') else False
+            jnp.any(leaf.value != 0) if hasattr(leaf, 'value') else jnp.any(leaf != 0)
             for leaf in grad_leaves
         )
         assert has_nonzero

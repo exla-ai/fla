@@ -242,23 +242,23 @@ trainer = DistributedTrainer(model, dataloader, config=config)
 trainer.train()  # Automatically uses all available GPUs
 ```
 
-## Benchmarks
+## Evaluation
 
-### ALOHA Sim (Our Results)
+FLA supports evaluation on simulation environments:
 
-| Task | Success Rate | Paper Baseline |
-|------|--------------|----------------|
-| Transfer Cube | 38% | 60% (ACT) |
-| Insertion | 66% | 50% (ACT) |
+```python
+from fla.evaluation import run_evaluation
 
-### LIBERO (Pi0.5 Official)
+# Evaluate on ALOHA simulation
+results = run_evaluation(
+    model=model,
+    task="gym_aloha/AlohaTransferCube-v0",
+    num_episodes=50,
+)
+print(f"Success Rate: {results['success_rate']:.1%}")
+```
 
-| Benchmark | Success Rate |
-|-----------|--------------|
-| LIBERO Spatial | 98.8% |
-| LIBERO Object | 98.2% |
-| LIBERO Goal | 98.0% |
-| LIBERO-10 | 92.4% |
+See `examples/` for complete evaluation scripts.
 
 ## Project Structure
 
@@ -293,15 +293,19 @@ fla/
 ## Running Tests
 
 ```bash
-# Run all tests
+# Run all tests (95 pass, 14 skipped for expensive operations)
 pytest tests/ -v
 
-# Run specific test file
-pytest tests/test_models.py -v
+# Run specific test module
+pytest tests/test_lora.py -v
+pytest tests/test_reinflow.py -v
+pytest tests/test_knowledge_insulation.py -v
 
 # Run with coverage
 pytest tests/ --cov=fla
 ```
+
+Tests are designed to run without the full openpi dependency. Tests requiring openpi or expensive model initialization are automatically skipped.
 
 ## License
 
@@ -312,16 +316,19 @@ Apache 2.0
 If you use FLA in your research, please cite:
 
 ```bibtex
-@software{fla2024,
+@software{fla2025,
   title={FLA: Fine-tune Vision-Language-Action Models},
-  year={2024},
-  url={https://github.com/yourusername/fla}
+  author={Arizona},
+  year={2025},
+  url={https://github.com/Physical-Intelligence/openpi}
 }
 ```
 
 ## Acknowledgments
 
 FLA builds on:
+- [OpenPI](https://github.com/Physical-Intelligence/openpi) by Physical Intelligence
 - [Pi0](https://www.physicalintelligence.company/blog/pi0) by Physical Intelligence
 - [LeRobot](https://github.com/huggingface/lerobot) by HuggingFace
-- [OpenPI](https://github.com/Physical-Intelligence/openpi) by Physical Intelligence
+- [Flax](https://github.com/google/flax) by Google
+- [JAX](https://github.com/google/jax) by Google

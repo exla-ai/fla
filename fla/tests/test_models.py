@@ -5,7 +5,15 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
+# Check if openpi is available
+try:
+    import openpi
+    HAS_OPENPI = True
+except ImportError:
+    HAS_OPENPI = False
 
+
+@pytest.mark.skipif(not HAS_OPENPI, reason="Requires openpi")
 class TestPi05Config:
     """Tests for Pi05Config."""
 
@@ -118,6 +126,7 @@ class TestObservation:
 class TestBaseModelConfig:
     """Tests for BaseModelConfig abstract class."""
 
+    @pytest.mark.skipif(not HAS_OPENPI, reason="Requires openpi")
     def test_fake_obs(self):
         """Test fake observation generation."""
         from fla.models import Pi05Config
@@ -128,6 +137,7 @@ class TestBaseModelConfig:
         assert fake_obs.state.shape == (2, 14)
         assert fake_obs.images["base_0_rgb"].shape == (2, 224, 224, 3)
 
+    @pytest.mark.skipif(not HAS_OPENPI, reason="Requires openpi")
     def test_fake_actions(self):
         """Test fake actions generation."""
         from fla.models import Pi05Config

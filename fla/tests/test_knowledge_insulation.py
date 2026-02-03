@@ -147,15 +147,16 @@ class TestInsulatedEmbedding:
 
         indices = jnp.array([[0, 1, 2]])
 
-        def loss_fn(emb):
-            graphdef, state = nnx.split(emb)
-            model = nnx.merge(graphdef, state)
+        # Split module first to get pytree state
+        graphdef, state = nnx.split(embedding)
+
+        def loss_fn(params):
+            model = nnx.merge(graphdef, params)
             return jnp.sum(model(indices))
 
         # Gradient should be zero for embedding weights
-        grad = jax.grad(loss_fn)(embedding)
-        graphdef, grad_state = nnx.split(grad)
-        grad_leaves = jax.tree_util.tree_leaves(grad_state)
+        grad = jax.grad(loss_fn)(state)
+        grad_leaves = jax.tree_util.tree_leaves(grad)
         for leaf in grad_leaves:
             if hasattr(leaf, 'value'):
                 np.testing.assert_array_equal(leaf.value, jnp.zeros_like(leaf.value))

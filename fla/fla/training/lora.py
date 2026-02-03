@@ -66,14 +66,30 @@ class LoRAConfig:
     init_scale: float = 0.01
 
 
+@dataclasses.dataclass
+class LoRALayerConfig:
+    """Configuration for a single LoRA layer (standalone version)."""
+    rank: int
+    alpha: float
+    init_scale: float
+    rslora: bool
+
+    @property
+    def scaling_value(self) -> float:
+        """Compute LoRA scaling factor."""
+        if self.rslora:
+            return self.alpha / (self.rank ** 0.5)
+        return self.alpha / self.rank
+
+
 def create_lora_config(config: LoRAConfig) -> dict[str, Any]:
-    """Convert FLA LoRAConfig to openpi lora configs.
+    """Convert FLA LoRAConfig to layer configs.
 
     Args:
         config: FLA LoRA configuration
 
     Returns:
-        Dictionary mapping module type to LoRA config dict
+        Dictionary mapping module type to LoRALayerConfig
     """
     if _HAS_OPENPI and _lora is not None:
         import flax.linen as nn
@@ -84,13 +100,13 @@ def create_lora_config(config: LoRAConfig) -> dict[str, Any]:
             rslora=config.rslora,
         )
     else:
-        # Standalone config when openpi is not available
-        base_config = {
-            "rank": config.rank,
-            "alpha": config.alpha,
-            "init_scale": config.init_scale,
-            "rslora": config.rslora,
-        }
+        # Standalone config - use our own dataclass
+        base_config = LoRALayerConfig(
+            rank=config.rank,
+            alpha=config.alpha,
+            init_scale=config.init_scale,
+            rslora=config.rslora,
+        )
 
     lora_configs = {}
     if config.target_modules in ("attention", "all"):
@@ -143,8 +159,8 @@ def get_lora_params_filter(config: LoRAConfig) -> nnx.filterlib.Filter:
 def get_frozen_params_filter(config: LoRAConfig) -> nnx.filterlib.Filter:
     """Get filter for parameters to freeze during LoRA training.
 
-    Returns a filter that matches all non-LoRA parameters.
-    These parameters should not receive gradient updates.
+    Returns a filter that matches parameters that should be frozen
+    (i.e., NOT receive gradient updates).
 
     Args:
         config: LoRA configuration
@@ -152,34 +168,61 @@ def get_frozen_params_filter(config: LoRAConfig) -> nnx.filterlib.Filter:
     Returns:
         NNX filter matching frozen parameters
     """
+    # If no LoRA is applied anywhere, nothing should be frozen by this filter
+    if not config.apply_to_vlm and not config.apply_to_action_expert:
+        return nnx.Nothing
+
     filters = []
 
-    if not config.apply_to_vlm:
-        # Freeze VLM parameters (but not LoRA if applied)
-        filters.append(PathRegex(".*llm.*"))
-        filters.append(nnx.Not(PathRegex(".*llm.*_1.*")))  # Exclude action expert
+    # Freeze base weights (non-LoRA) in modules where LoRA is applied
+    if config.apply_to_vlm:
+        # Freeze VLM base weights, but not LoRA weights
+        filters.append(nnx.All(
+            PathRegex(".*llm.*"),
+            nnx.Not(PathRegex(".*llm.*_1.*")),  # Exclude action expert
+            nnx.Not(PathRegex(".*lora.*")),  # Don't freeze LoRA
+        ))
 
-    if config.apply_to_vlm or config.apply_to_action_expert:
-        # Don't freeze LoRA parameters
-        filters.append(nnx.Not(PathRegex(".*lora.*")))
+    if config.apply_to_action_expert:
+        # Freeze action expert base weights, but not LoRA weights
+        filters.append(nnx.All(
+            PathRegex(".*llm.*_1.*"),  # Action expert
+            nnx.Not(PathRegex(".*lora.*")),  # Don't freeze LoRA
+        ))
 
     if not filters:
         return nnx.Nothing
 
-    return nnx.All(*filters)
+    if len(filters) == 1:
+        return filters[0]
+
+    return nnx.Any(*filters)
 
 
 def count_lora_params(state: Any) -> tuple[int, int]:
     """Count LoRA and total parameters.
 
     Args:
-        state: Model state (NNX state or pytree)
+        state: Model state (NNX state, pytree, or module)
 
     Returns:
         Tuple of (lora_params, total_params)
     """
+    # Handle NNX modules by splitting first
+    if isinstance(state, nnx.Module):
+        _, state = nnx.split(state)
+
+    def get_size(x):
+        """Get size of array, handling NNX Param wrappers."""
+        if hasattr(x, 'value'):
+            return x.value.size
+        elif hasattr(x, 'size'):
+            return x.size
+        return 0
+
     def count_params(tree):
-        return sum(x.size for x in jax.tree_util.tree_leaves(tree))
+        leaves = jax.tree_util.tree_leaves(tree)
+        return sum(get_size(x) for x in leaves)
 
     total = count_params(state)
 
@@ -189,7 +232,7 @@ def count_lora_params(state: Any) -> tuple[int, int]:
     for path, leaf in flat_state:
         path_str = "/".join(str(k) for k in path)
         if "lora" in path_str.lower():
-            lora_count += leaf.size
+            lora_count += get_size(leaf)
 
     return lora_count, total
 
@@ -248,9 +291,9 @@ class LoRALinear(nnx.Module):
         # B is initialized to zero so initial output is unchanged
         self.lora_b = nnx.Param(jnp.zeros((config.rank, out_features)))
 
-        # Compute scaling factor
+        # Compute scaling factor (use Python float to avoid being counted as param)
         if config.rslora:
-            self.scaling = config.alpha / jnp.sqrt(config.rank)
+            self.scaling = config.alpha / (config.rank ** 0.5)
         else:
             self.scaling = config.alpha / config.rank
 
@@ -305,30 +348,33 @@ def save_lora_adapter(
         config: LoRA configuration (saved for loading)
     """
     import pickle
+    import os
 
-    graphdef, state = nnx.split(model)
+    # Extract LoRA parameters directly from the model
+    lora_state = {}
 
-    # Extract only LoRA parameters
-    lora_filter = get_lora_params_filter(config)
+    def extract_lora_params(obj, prefix=""):
+        """Recursively extract LoRA parameters."""
+        if isinstance(obj, nnx.Param):
+            if "lora" in prefix.lower():
+                # Get the actual array value
+                lora_state[prefix] = jnp.array(obj.value)
+        elif isinstance(obj, nnx.Module):
+            for name, child in vars(obj).items():
+                if not name.startswith('_'):
+                    extract_lora_params(child, f"{prefix}/{name}" if prefix else name)
+        elif isinstance(obj, dict):
+            for name, child in obj.items():
+                extract_lora_params(child, f"{prefix}/{name}" if prefix else str(name))
 
-    def filter_state(tree, filter_fn):
-        """Filter state to only include matching parameters."""
-        flat = jax.tree_util.tree_leaves_with_path(tree)
-        filtered = {}
-        for path, leaf in flat:
-            path_str = "/".join(str(k) for k in path)
-            if "lora" in path_str.lower():
-                filtered[path_str] = leaf
-        return filtered
-
-    lora_state = filter_state(state, lora_filter)
+    extract_lora_params(model)
 
     checkpoint = {
         "lora_state": lora_state,
         "config": dataclasses.asdict(config),
     }
 
-    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    os.makedirs(os.path.dirname(path) if os.path.dirname(path) else ".", exist_ok=True)
     with open(path, "wb") as f:
         pickle.dump(checkpoint, f)
 
@@ -354,17 +400,21 @@ def load_lora_adapter(
     config = LoRAConfig(**checkpoint["config"])
     lora_state = checkpoint["lora_state"]
 
-    graphdef, state = nnx.split(model)
+    def load_lora_params(obj, prefix=""):
+        """Recursively load LoRA parameters."""
+        if isinstance(obj, nnx.Param):
+            full_path = prefix
+            if full_path in lora_state:
+                obj.value = lora_state[full_path]
+        elif isinstance(obj, nnx.Module):
+            for name, child in vars(obj).items():
+                if not name.startswith('_'):
+                    load_lora_params(child, f"{prefix}/{name}" if prefix else name)
+        elif isinstance(obj, dict):
+            for name, child in obj.items():
+                load_lora_params(child, f"{prefix}/{name}" if prefix else str(name))
 
-    # Update LoRA parameters in state
-    flat_state = dict(jax.tree_util.tree_leaves_with_path(state))
-    for path_str, value in lora_state.items():
-        # Find matching path in state and update
-        for state_path, state_leaf in flat_state.items():
-            state_path_str = "/".join(str(k) for k in state_path)
-            if state_path_str == path_str:
-                state_leaf[:] = value
-                break
+    load_lora_params(model)
 
     return config
 

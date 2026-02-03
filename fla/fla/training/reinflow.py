@@ -415,29 +415,53 @@ class ReinFlowTrainer:
         Returns:
             Dictionary of metrics
         """
-
-        def loss_fn(state):
-            graphdef, _ = nnx.split(self.model)
-            model = nnx.merge(graphdef, state)
-            # Temporarily replace model for log_prob computation
-            old_model = self.log_prob_fn.model
-            self.log_prob_fn.model = model
-            loss, metrics = self.compute_loss(
-                rng,
-                trajectory.observations,
-                trajectory.actions,
-                trajectory.advantages,
-                trajectory.log_probs,
-            )
-            self.log_prob_fn.model = old_model
-            return loss, metrics
-
         graphdef, state = nnx.split(self.model)
-        (loss, metrics), grads = jax.value_and_grad(loss_fn, has_aux=True)(state)
+
+        def loss_fn(params):
+            # Merge to create model for this forward pass
+            model = nnx.merge(graphdef, params)
+            # Create a temporary log prob function with this model
+            temp_log_prob_fn = FlowPolicyLogProb(model)
+
+            # Compute loss using temporary log prob function
+            batch_size = len(trajectory.observations)
+            total_loss = 0.0
+            loss_rng = rng
+
+            for i, (obs, act, adv) in enumerate(zip(
+                trajectory.observations, trajectory.actions, trajectory.advantages
+            )):
+                loss_rng, step_rng = jax.random.split(loss_rng)
+                log_prob = temp_log_prob_fn(step_rng, obs, act)
+
+                if self.config.algorithm == "reinforce":
+                    policy_loss = -jnp.mean(log_prob * adv)
+                elif self.config.algorithm == "ppo" and trajectory.log_probs is not None:
+                    ratio = jnp.exp(log_prob - trajectory.log_probs[i])
+                    clipped_ratio = jnp.clip(
+                        ratio,
+                        1 - self.config.clip_ratio,
+                        1 + self.config.clip_ratio,
+                    )
+                    policy_loss = -jnp.mean(
+                        jnp.minimum(ratio * adv, clipped_ratio * adv)
+                    )
+                else:
+                    policy_loss = 0.0
+
+                total_loss += policy_loss / batch_size
+
+            return total_loss
+
+        # Compute loss and gradients
+        loss, grads = jax.value_and_grad(loss_fn)(state)
 
         # Gradient clipping
         grad_norm = optax.global_norm(grads)
-        metrics["grad_norm"] = float(grad_norm)
+        metrics = {
+            "policy_loss": float(loss),
+            "grad_norm": float(grad_norm),
+        }
 
         # Apply updates
         updates, self.opt_state = self.optimizer.update(
