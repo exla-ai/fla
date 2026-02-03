@@ -14,6 +14,7 @@ Reference: Black et al., "ReinFlow: Reinforcement Learning for Flow Matching"
 """
 
 import dataclasses
+import logging
 from typing import Any, Callable, Literal
 
 import flax.nnx as nnx
@@ -22,6 +23,8 @@ import jax.numpy as jnp
 import optax
 
 from fla.shared import array_typing as at
+
+logger = logging.getLogger(__name__)
 
 # Try to import from fla.models.base, fallback to minimal definitions
 try:

@@ -1,5 +1,10 @@
 """Knowledge Insulation for VLA Fine-tuning.
 
+Logging:
+    This module uses Python's logging module. Configure with:
+    >>> import logging
+    >>> logging.getLogger("fla.training.knowledge_insulation").setLevel(logging.DEBUG)
+
 Knowledge Insulation (from Pi0.5 paper) prevents catastrophic forgetting during
 fine-tuning by maintaining separation between:
 - Discrete tokens: VLM processes language/images using discrete embeddings
@@ -13,6 +18,7 @@ Reference: Physical Intelligence, "pi0.5: A Vision-Language-Action Model"
 """
 
 import dataclasses
+import logging
 from typing import Literal
 
 import flax.nnx as nnx
@@ -20,6 +26,8 @@ import jax
 import jax.numpy as jnp
 
 from fla.shared import array_typing as at
+
+logger = logging.getLogger(__name__)
 
 
 @dataclasses.dataclass(frozen=True)

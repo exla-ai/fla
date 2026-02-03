@@ -11,6 +11,7 @@ Reference: Hu et al., "LoRA: Low-Rank Adaptation of Large Language Models"
 """
 
 import dataclasses
+import logging
 from typing import Any, Literal
 
 import flax.nnx as nnx
@@ -19,6 +20,8 @@ import jax.numpy as jnp
 
 from fla.shared import array_typing as at
 from fla.shared.nnx_utils import PathRegex
+
+logger = logging.getLogger(__name__)
 
 # Conditionally import openpi LoRA implementation
 # Falls back to standalone implementation if openpi is not available

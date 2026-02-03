@@ -12,6 +12,7 @@ Key features for fine-tuning:
 """
 
 import dataclasses
+import logging
 from typing import Any, Literal
 
 import flax.nnx as nnx
@@ -22,20 +23,33 @@ from fla.models.base import BaseModel, BaseModelConfig, Observation, Actions, IM
 from fla.shared import array_typing as at
 from fla.shared.nnx_utils import PathRegex
 
-# Import core implementations from openpi
-# These are well-tested and complex - no need to reimplement
+logger = logging.getLogger(__name__)
+
+# Conditionally import openpi - allows FLA to work standalone for training modules
+# Full model functionality requires openpi
 import sys
 import os
 
-# Add openpi to path if needed
 _OPENPI_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "src"))
 if _OPENPI_PATH not in sys.path:
     sys.path.insert(0, _OPENPI_PATH)
 
-from openpi.models import pi0 as _pi0
-from openpi.models import pi0_config as _pi0_config
-from openpi.models import gemma as _gemma
-from openpi.models import model as _model
+try:
+    from openpi.models import pi0 as _pi0
+    from openpi.models import pi0_config as _pi0_config
+    from openpi.models import gemma as _gemma
+    from openpi.models import model as _model
+    _HAS_OPENPI = True
+except ImportError:
+    _pi0 = None
+    _pi0_config = None
+    _gemma = None
+    _model = None
+    _HAS_OPENPI = False
+    logger.warning(
+        "openpi not found. Pi05Model requires openpi for full functionality. "
+        "Training modules (LoRA, ReinFlow, Knowledge Insulation) work standalone."
+    )
 
 
 # Gemma variant type
@@ -111,8 +125,13 @@ class Pi05Config(BaseModelConfig):
             nnx.Not(PathRegex(".*llm.*_1.*")),  # Don't freeze action expert
         )
 
-    def to_openpi_config(self) -> _pi0_config.Pi0Config:
+    def to_openpi_config(self):
         """Convert to openpi Pi0Config for internal use."""
+        if not _HAS_OPENPI:
+            raise ImportError(
+                "openpi is required for Pi05Model. Install it from: "
+                "https://github.com/Physical-Intelligence/openpi"
+            )
         return _pi0_config.Pi0Config(
             action_dim=self.action_dim,
             action_horizon=self.action_horizon,

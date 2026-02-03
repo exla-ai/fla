@@ -31,7 +31,27 @@ Advanced - ReinFlow:
     >>> rf_config = ReinFlowConfig(algorithm="ppo")
 """
 
+import logging
+
 __version__ = "0.1.0"
+
+
+def setup_logging(
+    level: int = logging.INFO,
+    format: str = "%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    datefmt: str = "%H:%M:%S",
+) -> None:
+    """Configure logging for FLA.
+
+    Args:
+        level: Logging level (default: INFO)
+        format: Log message format
+        datefmt: Date format for timestamps
+    """
+    logging.basicConfig(level=level, format=format, datefmt=datefmt)
+    # Set FLA loggers
+    for name in ["fla", "fla.training", "fla.models", "fla.data", "fla.evaluation"]:
+        logging.getLogger(name).setLevel(level)
 
 
 def __getattr__(name):
@@ -103,6 +123,8 @@ def __getattr__(name):
 
 
 __all__ = [
+    # Setup
+    "setup_logging",
     # Models
     "Pi05Config",
     "Pi05Model",
