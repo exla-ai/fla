@@ -50,12 +50,22 @@ OPTIONAL_TASKS: dict[str, AlohaBenchmarkSpec] = {
 }
 
 
-def create_policy(checkpoint_dir: str, config_name: str, default_prompt: str):
+def create_policy(
+    checkpoint_dir: str,
+    *,
+    config_name: str | None = None,
+    train_config=None,
+    default_prompt: str,
+):
     """Create a policy from a checkpoint."""
     from fla.policies import policy_config as _policy_config
     from fla.training import config as _config
 
-    train_config = _config.get_config(config_name)
+    if train_config is None:
+        if config_name is None:
+            raise ValueError("Provide config_name or train_config.")
+        train_config = _config.get_config(config_name)
+
     return _policy_config.create_trained_policy(
         train_config=train_config,
         checkpoint_dir=checkpoint_dir,
@@ -214,7 +224,8 @@ def evaluate_task(
 def run_suite(
     *,
     checkpoint_dir: str,
-    config_name: str,
+    config_name: str | None = None,
+    train_config=None,
     tasks: list[str],
     num_episodes: int,
     seed: int = 0,
@@ -226,6 +237,7 @@ def run_suite(
     policy = create_policy(
         checkpoint_dir=checkpoint_dir,
         config_name=config_name,
+        train_config=train_config,
         default_prompt="Complete the manipulation task",
     )
 

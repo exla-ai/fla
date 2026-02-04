@@ -17,6 +17,27 @@ This repository provides infrastructure for fine-tuning [Physical Intelligence's
 
 ---
 
+## Evaluation Quickstart
+
+```bash
+# ALOHA sim (local)
+fla-benchmark \
+  --suite aloha_sim \
+  --checkpoint-dir ./checkpoints/pi06_multi/pi06_multi_v1/30000 \
+  --config pi06_multi \
+  --num-episodes 50
+
+# Dataset eval (offline MSE/RMSE)
+fla-benchmark \
+  --suite dataset \
+  --checkpoint-dir ./checkpoints/your_config/your_exp/30000 \
+  --config your_config \
+  --repo-ids your-org/your_dataset \
+  --max-samples 1024
+```
+
+---
+
 ## VLA Fine-Tuning Methods (Research & Open-Source)
 
 | Method | Key Idea | Action Representation | Compute Footprint | Reference | FLA Support |
@@ -255,6 +276,17 @@ fla-benchmark \
 
 Note: `gym-aloha` is required for these tasks (installed by default via `pyproject.toml`).
 
+Example result (H100, 2026‑02‑04, **short run**, 1,000 training steps, 10 episodes, `MUJOCO_GL=osmesa`):
+
+```text
+Task: gym_aloha/AlohaTransferCube-v0
+Checkpoint: ./checkpoints/pi0_frozen_backbone_aloha_1k/aloha_1k/999
+Success Rate: 10.0%
+Avg Reward: 0.1
+```
+
+This is still a quick sanity check only. For meaningful success rates, run longer training and evaluate with more episodes.
+
 ### Benchmark Evaluation (LIBERO)
 
 Install LIBERO dependencies and run evaluation locally:
@@ -295,6 +327,14 @@ fla-benchmark \
   --model-action-dim 9 \
   --model-action-horizon 20 \
   --max-samples 1024
+```
+
+Example result (H100, 2026‑02‑04, offline dataset eval on 8 samples):
+
+```text
+Dataset: fla/isaac_franka_cabinet + fla/isaac_franka_lift
+Checkpoint: ./checkpoints/pi0_frozen_backbone/isaaclab_demo/4
+Metrics: MSE=3.010680, RMSE=1.735131, L1=1.374045
 ```
 
 ### Full Suite

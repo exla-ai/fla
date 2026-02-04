@@ -27,5 +27,11 @@ jobs:
       - name: Install the project
         run: uv sync --all-extras --dev
 
+      - name: Sanity check benchmark CLI
+        run: uv run fla-benchmark --help
+
+      - name: Recipe tests
+        run: uv run pytest src/fla/finetune/recipes_test.py -q
+
       - name: Run tests
         run: uv run pytest --strict-markers -m "not manual"

@@ -282,12 +282,38 @@ def main() -> None:
         default_prompt = "Complete the task"
 
     if args.suite in ("aloha_sim", "aloha_sim_full"):
-        if not args.checkpoint_dir or not args.config:
-            raise SystemExit("--checkpoint-dir and --config are required for ALOHA evaluation.")
+        if not args.checkpoint_dir:
+            raise SystemExit("--checkpoint-dir is required for ALOHA evaluation.")
         tasks = _parse_tasks(args)
+        train_config = None
+        config_name = args.config
+        if args.recipe:
+            if not args.repo_ids:
+                raise SystemExit("--repo-ids are required when using --recipe.")
+            from fla.finetune import recipes as _recipes
+
+            overrides = _recipes.RecipeOverrides(
+                repo_ids=tuple(args.repo_ids),
+                repo_id_to_prompt=repo_id_to_prompt,
+                exp_name="eval",
+                base_model=args.base_model,
+                init_from=args.init_from,
+                paligemma_variant=args.paligemma_variant,
+                action_expert_variant=args.action_expert_variant,
+                action_dim=args.model_action_dim or 14,
+                action_horizon=args.model_action_horizon or 50,
+                use_delta_joint_actions=args.use_delta_joint_actions,
+                prompt_from_task=args.prompt_from_task,
+                default_prompt=default_prompt,
+            )
+            train_config = _recipes.build_train_config(args.recipe, overrides)
+            config_name = None
+        elif not args.config:
+            raise SystemExit("--config is required for ALOHA evaluation unless --recipe is provided.")
         results = aloha_sim.run_suite(
             checkpoint_dir=args.checkpoint_dir,
-            config_name=args.config,
+            config_name=config_name,
+            train_config=train_config,
             tasks=tasks,
             num_episodes=args.num_episodes,
             seed=args.seed,
