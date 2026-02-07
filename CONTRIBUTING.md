@@ -4,7 +4,7 @@ We welcome contributions, improvements, and modifications. Everyone is welcome t
 
 ## Issues and feature requests
 
-You are welcome to use the Github [discussion](https://github.com/Physical-Intelligence/openpi/discussions) feature if you would like to discuss something that is not directly reporting an issue or making a feature request. This is suitable for questions about how to use some aspect of FLA, or other topics.
+You are welcome to use the Github [discussion](https://github.com/exla-ai/fla/discussions) feature if you would like to discuss something that is not directly reporting an issue or making a feature request. This is suitable for questions about how to use some aspect of FLA, or other topics.
 
 If you found a bug or other issue, please first check that the issue was not already reported (use the search bar on Github under Issues). If the issue has not yet been reported, please include this information when filing a Github issue:
 
@@ -26,7 +26,7 @@ We can't promise to support every feature request, but it is helpful to us to kn
 
 ## Submitting a pull request
 
-If you implemented support for a new robot or environment, or some other new feature, we welcome pull requests (PRs) to FLA. We encourage you to create a [feature request](https://github.com/Physical-Intelligence/openpi/issues) or make a post on the [discussion](https://github.com/Physical-Intelligence/openpi/discussions) board before starting to work on your PR, if you would like to get a sense for whether we are likely to approve your PR if it is submitted. Since we are a small team with limited ability to provide maintenance and support, we may not accept all PRs (e.g., if we believe it would make the code harder to maintain, or if reviewing the PR is out of scope for us), so contacting us in advance is a good way to get a sense for whether your PR is likely to get approved for merging into FLA directly. But even if it isn't, you are of course more than welcome to maintain your own fork with whatever modifications you would like. When creating PRs, we recommend every contribution to consider the following:
+If you implemented support for a new robot or environment, or some other new feature, we welcome pull requests (PRs) to FLA. We encourage you to create a [feature request](https://github.com/exla-ai/fla/issues) or make a post on the [discussion](https://github.com/exla-ai/fla/discussions) board before starting to work on your PR, if you would like to get a sense for whether we are likely to approve your PR if it is submitted. Since we are a small team with limited ability to provide maintenance and support, we may not accept all PRs (e.g., if we believe it would make the code harder to maintain, or if reviewing the PR is out of scope for us), so contacting us in advance is a good way to get a sense for whether your PR is likely to get approved for merging into FLA directly. But even if it isn't, you are of course more than welcome to maintain your own fork with whatever modifications you would like. When creating PRs, we recommend every contribution to consider the following:
 
 - Make sure that your PR has a clear title and description
 - Run `pre-commit` (install using `pre-commit install` first), and run `ruff check .` and `ruff format .`

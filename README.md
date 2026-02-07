@@ -631,7 +631,7 @@ See [Fine-Tuning Guide](#fine-tuning-on-your-own-tasks) for details.
 
 ## Updates
 
-See the [upstream Physical Intelligence repository](https://github.com/Physical-Intelligence/openpi) for official updates. 
+FLA is a fork of the [Physical Intelligence openpi repository](https://github.com/Physical-Intelligence/openpi). See the upstream repo for official updates from the original authors.
 
 
 ## Requirements
@@ -655,19 +655,23 @@ FLA is a Python library. Install it into a virtual environment and import `fla` 
 We use `uv` to manage Python dependencies (fast and reproducible). The simplest way to install FLA is directly from Git:
 
 ```bash
-uv pip install "git+https://github.com/your-org/fla.git"
+# Using uv (recommended)
+uv pip install "git+https://github.com/exla-ai/fla.git"
+
+# Or using plain pip
+pip install "git+https://github.com/exla-ai/fla.git"
 ```
 
 To pin to a tag or commit:
 
 ```bash
-uv pip install "git+https://github.com/your-org/fla.git@v0.1.0"
+uv pip install "git+https://github.com/exla-ai/fla.git@v0.1.0"
 ```
 
 Quick sanity check:
 
 ```bash
-python -c "import fla; print('FLA import OK')"
+python -c "import fla; print(fla.__version__)"
 ```
 
 ### Option B: Clone for development
@@ -675,7 +679,7 @@ python -c "import fla; print('FLA import OK')"
 When cloning this repo, make sure to update submodules:
 
 ```bash
-git clone --recurse-submodules https://github.com/your-org/fla.git
+git clone --recurse-submodules https://github.com/exla-ai/fla.git
 
 # Or if you already cloned the repo:
 git submodule update --init --recursive

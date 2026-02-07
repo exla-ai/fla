@@ -10,7 +10,7 @@
 # Global owners.
 * @jimmyt857 @Michael-Equi @uzhilinsky
 
-src/openpi/models/ @kvablack @uzhilinsky
-src/openpi/training/ @kvablack @uzhilinsky
+src/fla/models/ @kvablack @uzhilinsky
+src/fla/training/ @kvablack @uzhilinsky
 
 scripts/ @jimmyt857 @kvablack @uzhilinsky

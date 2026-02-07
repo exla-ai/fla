@@ -42,7 +42,10 @@ dependencies = [
 
 
 [project.urls]
-Repository = "https://github.com/Physical-Intelligence/openpi"
+Homepage = "https://github.com/exla-ai/fla"
+Repository = "https://github.com/exla-ai/fla"
+Issues = "https://github.com/exla-ai/fla/issues"
+Changelog = "https://github.com/exla-ai/fla/releases"
 
 [project.scripts]
 fla-benchmark = "fla.benchmarks.cli:main"

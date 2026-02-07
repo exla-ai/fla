@@ -7,7 +7,7 @@ on:
 jobs:
   run_tests:
     name: Run Tests
-    runs-on: openpi-verylarge
+    runs-on: ubuntu-latest  # NOTE: GPU tests require a self-hosted runner with NVIDIA GPU
     env:
       GIT_LFS_SKIP_SMUDGE: true
     steps:
