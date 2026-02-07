@@ -64,7 +64,7 @@ rlds = [
 ]
 libero = [
     "libero",
-    "robosuite>=1.4.1",
+    "robosuite>=1.4.0",
     "mujoco>=3.2.3",
     "pynput>=1.7.7",
     "imageio-ffmpeg>=0.5.1",
@@ -73,7 +73,7 @@ libero = [
 ]
 
 [tool.uv]
-override-dependencies = ["ml-dtypes==0.4.1", "tensorstore==0.1.74"]
+override-dependencies = ["ml-dtypes==0.4.1", "tensorstore==0.1.74", "av==12.3.0"]
 
 [tool.uv.sources]
 openpi-client = { workspace = true }
